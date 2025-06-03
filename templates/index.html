@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}Instagram Bot Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .card {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        margin: 0.25rem;
+        backdrop-filter: blur(5px);
+    }
+    .tag-remove {
+        margin-left: 0.5rem;
+        cursor: pointer;
+    }
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .status-online {
+        background-color: #10b981;
+        box-shadow: 0 0 10px #10b981;
+    }
+    .status-offline {
+        background-color: #ef4444;
+    }
+    .status-idle {
+        background-color: #f59e0b;
+        box-shadow: 0 0 10px #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen gradient-bg text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-2">Instagram Bot</h1>
+            <p class="text-xl opacity-80">Automate your Instagram engagement</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Configuration Panel -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="card rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                        <i class="fas fa-cog mr-2"></i> Configuration
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <!-- Target Accounts -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Target Accounts</label>
+                            <div class="flex">
+                                <input type="text" id="targetAccounts" class="flex-grow px-4 py-2 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., user1, user2, user3">
+                                <button onclick="addTargetAccount()" class="bg-purple-600 hover:bg-purple-700 px-4 rounded-r-lg transition-colors">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div id="targetAccountsList" class="flex flex-wrap mt-2">
+                                <!-- Target accounts will be added here -->
+                            </div>
+                        </div>
+
+                        <!-- Fitness Keywords -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Fitness Keywords (optional)</label>
+                            <div class="flex">
+                                <input type="text" id="fitnessKeywords" class="flex-grow px-4 py-2 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., fitness, workout, gym">
+                                <button onclick="addFitnessKeyword()" class="bg-purple-600 hover:bg-purple-700 px-4 rounded-r-lg transition-colors">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div id="fitnessKeywordsList" class="flex flex-wrap mt-2">
+                                <!-- Keywords will be added here -->
+                            </div>
+                        </div>
+
+                        <!-- Bot Settings -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="maxComments" class="block text-sm font-medium mb-2">Max Comments Per Day</label>
+                                <input type="number" id="maxComments" value="5" min="1" max="50" class="w-full px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label for="frequency" class="block text-sm font-medium mb-2">Check Every (hours)</label>
+                                <input type="number" id="frequency" value="24" min="1" max="168" class="w-full px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="pt-4">
+                            <button onclick="saveConfig()" class="w-full btn-primary py-3 px-6 rounded-lg font-semibold text-white shadow-lg">
+                                <i class="fas fa-save mr-2"></i> Save Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Panel -->
+            <div class="space-y-6">
+                <!-- Bot Status -->
+                <div class="card rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                        <i class="fas fa-robot mr-2"></i> Bot Status
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="opacity-80">Status:</span>
+                            <span id="botStatus" class="px-3 py-1 rounded-full bg-yellow-500 bg-opacity-20 text-yellow-400 text-sm font-medium">
+                                <i class="fas fa-circle-notch fa-spin mr-1"></i> Loading...
+                            </span>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-gray-700">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="opacity-80">Last Run:</span>
+                                <span id="lastRun">-</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="opacity-80">Next Run:</span>
+                                <span id="nextRun">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button id="toggleBotBtn" onclick="toggleBot()" class="w-full py-3 px-6 rounded-lg font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors">
+                                <i class="fas fa-power-off mr-2"></i> Start Bot
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-2xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-history mr-2"></i> Activity Log
+                    </h2>
+                    <div id="activityLog" class="h-64 overflow-y-auto text-sm space-y-2 font-mono bg-gray-900 bg-opacity-50 p-3 rounded-lg">
+                        <div class="text-green-400">[12:00:00] Bot started successfully</div>
+                        <div class="text-blue-400">[12:00:05] Checking for new posts...</div>
+                        <div class="text-yellow-400">[12:00:10] No new posts found</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+        // Load configuration when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            updateStatus();
+            // Update status every 30 seconds
+            setInterval(updateStatus, 30000);
+        });
+
+        // Load configuration from server
+        async function loadConfig() {
+            try {
+                const response = await fetch('/get_config');
+                if (!response.ok) {
+                    throw new Error('Failed to load configuration');
+                }
+                const config = await response.json();
+                
+                // Update form fields with default values if not set
+                document.getElementById('maxComments').value = config.max_comments_per_day || 5;
+                document.getElementById('frequency').value = config.comment_frequency_hours || 24;
+                
+                // Handle target accounts (ensure it's an array)
+                const targetAccounts = Array.isArray(config.target_accounts) ? 
+                    config.target_accounts : 
+                    (config.target_accounts || '').split(',').filter(Boolean);
+                
+                // Handle fitness keywords (ensure it's an array)
+                const fitnessKeywords = Array.isArray(config.fitness_keywords) ? 
+                    config.fitness_keywords : 
+                    (config.fitness_keywords || '').split(',').filter(Boolean);
+                
+                // Update tag lists with the loaded data
+                updateTagList('targetAccountsList', targetAccounts);
+                updateTagList('fitnessKeywordsList', fitnessKeywords);
+                
+                addLog('Configuration loaded successfully', 'green-400');
+                
+            } catch (error) {
+                console.error('Error loading config:', error);
+                addLog(`Error loading configuration: ${error.message}`, 'red-400');
+            }
+        }
+
+        // Save configuration
+        async function saveConfig() {
+            const config = {
+                target_accounts: Array.from(document.querySelectorAll('#targetAccountsList .tag'))
+                    .map(tag => tag.textContent.trim().replace('×', '').trim())
+                    .filter(acc => acc),  // Remove empty strings
+                fitness_keywords: Array.from(document.querySelectorAll('#fitnessKeywordsList .tag'))
+                    .map(tag => tag.textContent.trim().replace('×', '').trim())
+                    .filter(kw => kw),  // Remove empty strings
+                max_comments_per_day: parseInt(document.getElementById('maxComments').value) || 5,
+                comment_frequency_hours: parseInt(document.getElementById('frequency').value) || 24
+            };
+
+            // Validate at least one target account
+            if (config.target_accounts.length === 0) {
+                addLog('Please add at least one target account', 'yellow-400');
+                return;
+            }
+
+            try {
+                const response = await fetch('/update_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addLog('Configuration saved successfully', 'green-400');
+                    // Update the UI to reflect the saved configuration
+                    updateTagList('targetAccountsList', config.target_accounts);
+                    updateTagList('fitnessKeywordsList', config.fitness_keywords);
+                } else {
+                    throw new Error(result.message || 'Failed to save configuration');
+                }
+            } catch (error) {
+                console.error('Error saving config:', error);
+                addLog(`Error: ${error.message}`, 'red-400');
+            }
+        }
+
+        // Toggle bot on/off
+        async function toggleBot() {
+            const button = document.getElementById('toggleBotBtn');
+            const buttonText = document.getElementById('toggleBotText');
+            const buttonIcon = document.getElementById('toggleBotIcon');
+            
+            // Disable button during operation
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/toggle_bot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to toggle bot');
+                }
+                
+                if (data.status === 'running') {
+                    buttonText.textContent = 'Stop Bot';
+                    buttonIcon.className = 'fas fa-stop mr-2';
+                    button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    button.classList.add('bg-red-600', 'hover:bg-red-700');
+                    addLog('Bot started successfully', 'green-400');
+                } else {
+                    buttonText.textContent = 'Start Bot';
+                    buttonIcon.className = 'fas fa-play mr-2';
+                    button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    button.classList.add('bg-green-600', 'hover:bg-green-700');
+                    addLog('Bot stopped', 'yellow-400');
+                }
+            } catch (error) {
+                console.error('Error toggling bot:', error);
+                addLog(`Error toggling bot: ${error.message}`, 'red-400');
+                
+                // Reset button state based on current status
+                fetch('/get_status')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'running') {
+                            buttonText.textContent = 'Stop Bot';
+                            buttonIcon.className = 'fas fa-stop mr-2';
+                            button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                            button.classList.add('bg-red-600', 'hover:bg-red-700');
+                        } else {
+                            buttonText.textContent = 'Start Bot';
+                            buttonIcon.className = 'fas fa-play mr-2';
+                            button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                            button.classList.add('bg-green-600', 'hover:bg-green-700');
+                        }
+                    })
+                    .catch(err => console.error('Error getting status:', err));
+            } finally {
+                // Re-enable button
+                button.disabled = false;
+            }
+        }
+
+        // Update bot status and logs
+        async function updateStatus() {
+            try {
+                // Fetch status and logs in parallel
+                const [statusResponse, logsResponse] = await Promise.all([
+                    fetch('/get_status'),
+                    fetch('/logs')
+                ]);
+                
+                const status = await statusResponse.json();
+                const logsData = await logsResponse.json();
+                
+                // Update status display
+                const statusElement = document.getElementById('botStatus');
+                const toggleBtn = document.getElementById('toggleBotBtn');
+                const logsContainer = document.getElementById('logs');
+                
+                if (status.status === 'running') {
+                    statusElement.innerHTML = '<i class="fas fa-circle mr-1"></i> Running';
+                    statusElement.className = 'px-3 py-1 rounded-full bg-green-500 bg-opacity-20 text-green-400 text-sm font-medium';
+                    toggleBtn.innerHTML = '<i class="fas fa-power-off mr-2"></i> Stop Bot';
+                    toggleBtn.className = 'w-full py-3 px-6 rounded-lg font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors';
+                } else {
+                    statusElement.innerHTML = '<i class="fas fa-circle mr-1"></i> Stopped';
+                    statusElement.className = 'px-3 py-1 rounded-full bg-gray-500 bg-opacity-20 text-gray-400 text-sm font-medium';
+                    toggleBtn.innerHTML = '<i class="fas fa-power-off mr-2"></i> Start Bot';
+                    toggleBtn.className = 'w-full py-3 px-6 rounded-lg font-semibold bg-green-600 hover:bg-green-700 text-white transition-colors';
+                }
+                
+                document.getElementById('lastRun').textContent = status.last_run || '-';
+                document.getElementById('nextRun').textContent = status.next_run || '-';
+                
+                // Update logs
+                if (logsData.logs && logsData.logs.length > 0) {
+                    logsContainer.innerHTML = ''; // Clear existing logs
+                    logsData.logs.forEach(log => {
+                        const logElement = document.createElement('div');
+                        logElement.className = 'font-mono text-sm py-1 border-b border-gray-700 last:border-0';
+                        logElement.textContent = log;
+                        logsContainer.appendChild(logElement);
+                    });
+                    // Auto-scroll to bottom
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        // Toggle bot on/off
+        async function toggleBot() {
+            try {
+                const response = await fetch('/toggle_bot', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    const action = result.running ? 'started' : 'stopped';
+                    addLog(`Bot ${action} successfully`, 'green-400');
+                    updateStatus();
+                } else {
+                    throw new Error(result.message || 'Failed to toggle bot');
+                }
+            } catch (error) {
+                console.error('Error toggling bot:', error);
+                addLog('Error toggling bot: ' + error.message, 'red-400');
+            }
+        }
+
+        // Add target account
+        function addTargetAccount() {
+            const input = document.getElementById('targetAccounts');
+            const value = input.value.trim();
+            
+            if (value) {
+                const accounts = value.split(',').map(acc => acc.trim()).filter(acc => acc);
+                updateTagList('targetAccountsList', accounts, true);
+                input.value = '';
+            }
+        }
+
+        // Add fitness keyword
+        function addFitnessKeyword() {
+            const input = document.getElementById('fitnessKeywords');
+            const value = input.value.trim();
+            
+            if (value) {
+                const keywords = value.split(',').map(kw => kw.trim()).filter(kw => kw);
+                updateTagList('fitnessKeywordsList', keywords, true);
+                input.value = '';
+            }
+        }
+
+        // Update tag list
+        function updateTagList(containerId, items, append = false) {
+            const container = document.getElementById(containerId);
+            
+            if (!append) {
+                container.innerHTML = '';
+            }
+            
+            items.forEach(item => {
+                if (!container.textContent.includes(item)) {
+                    const tag = document.createElement('div');
+                    tag.className = 'tag';
+                    tag.innerHTML = `
+                        ${item}
+                        <span class="tag-remove" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </span>
+                    `;
+                    container.appendChild(tag);
+                }
+            });
+        }
+
+        // Add log message
+        function addLog(message, color = 'white') {
+            const logContainer = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `text-${color}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.prepend(logEntry);
+            
+            // Keep only the last 50 log entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        // Allow pressing Enter in input fields
+        document.getElementById('targetAccounts').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTargetAccount();
+            }
+        });
+
+        document.getElementById('fitnessKeywords').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addFitnessKeyword();
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load configuration when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadConfig();
+        updateStatus();
+        // Update status every 5 seconds
+        setInterval(updateStatus, 5000);
+    });
+</script>
+{% endblock %}
